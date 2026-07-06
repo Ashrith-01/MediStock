@@ -47,6 +47,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @OneToMany(mappedBy = "createdBy")
-    private List<PurchaseOrder> purchaseOrders;
+    // @OneToMany(mappedBy = "createdBy")
+    // private List<PurchaseOrder> purchaseOrders;
 }
