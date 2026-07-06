@@ -3,6 +3,7 @@ import com.medistock.backend.entity.Role;
 import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Getter
 @Setter
@@ -41,7 +42,11 @@ public class User {
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
+
+    @OneToMany(mappedBy = "createdBy")
+    private List<PurchaseOrder> purchaseOrders;
 }

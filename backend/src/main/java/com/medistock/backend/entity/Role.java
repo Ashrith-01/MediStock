@@ -4,6 +4,8 @@ import com.medistock.backend.enums.RoleName;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,4 +23,6 @@ public class Role {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 20)
     private RoleName roleName;
+    @OneToMany(mappedBy = "role")
+    private List<User> users;
 }

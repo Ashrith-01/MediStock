@@ -62,5 +62,9 @@ public class PurchaseOrder {
 
         @Column(nullable = false)
         private BigDecimal lineTotal;
+
+        @ManyToOne
+        @JoinColumn(name = "created_by")
+        private User createdBy;
     }
 }

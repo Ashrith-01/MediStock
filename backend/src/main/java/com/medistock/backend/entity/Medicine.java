@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -52,6 +54,9 @@ public class Medicine {
 
     @OneToOne(mappedBy = "medicine", cascade = CascadeType.ALL, orphanRemoval = true)
     private Inventory inventory;
+
+    @OneToMany(mappedBy = "medicine")
+    private List<StockLog> stockLogs;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
