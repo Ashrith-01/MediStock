@@ -42,8 +42,14 @@ public class AuthService {
             throw new EmailAlreadyExistsException("Email already registered");
         }
 
-        Role role = roleRepository.findByRoleName(RoleName.STAFF)
-                .orElseThrow(() -> new RoleNotFoundException("Role not found: STAFF"));
+        RoleName requestedRole = RoleName.STAFF;
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            requestedRole = RoleName.valueOf(request.getRole().trim().toUpperCase());
+        }
+
+        final RoleName resolvedRole = requestedRole;
+        Role role = roleRepository.findByRoleName(resolvedRole)
+                .orElseThrow(() -> new RoleNotFoundException("Role not found: " + resolvedRole));
 
         User user = User.builder()
                 .firstName(request.getFirstName().trim())

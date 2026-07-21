@@ -2,10 +2,11 @@ package com.medistock.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -22,41 +23,33 @@ public class Medicine {
     private Long id;
 
     @Column(nullable = false, length = 150)
-    private String name;
+    private String medicineName;
 
-    @Column(length = 150)
-    private String genericName;
+    @Column(nullable = false, length = 100)
+    private String batchNumber;
 
-    @Column(length = 100)
-    private String brand;
-
-    @Column(length = 100)
-    private String dosageForm;
-
-    @Column(length = 100)
-    private String strength;
-
-    @Column(length = 50)
-    private String quantityPerUnit;
+    @Column(nullable = false, length = 100)
+    private String category;
 
     @Column(nullable = false)
-    private BigDecimal unitPrice;
+    private Integer quantity;
 
-    private LocalDate expirationDate;
+    @Column(nullable = false)
+    private LocalDate manufacturingDate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @Column(nullable = false)
+    private LocalDate expiryDate;
+
+    @Column(nullable = false)
+    private BigDecimal price;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id")
     private Supplier supplier;
 
-    @OneToOne(mappedBy = "medicine", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Inventory inventory;
-
-    @OneToMany(mappedBy = "medicine")
-    private List<StockLog> stockLogs;
+    @Builder.Default
+    @OneToMany(mappedBy = "medicine", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StockLog> stockLogs = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

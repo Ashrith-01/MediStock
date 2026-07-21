@@ -2,6 +2,7 @@ package com.medistock.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,24 +18,27 @@ public class StockLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medicine_id", nullable = false)
-    private Medicine medicine;
+    @Column(nullable = false)
+    private Long medicineId;
 
     @Column(nullable = false)
-    private Integer quantityChanged;
+    private Integer oldQuantity;
+
+    @Column(nullable = false)
+    private Integer newQuantity;
 
     @Column(nullable = false, length = 50)
-    private String changeType;
-
-    @Column(length = 255)
-    private String note;
+    private String actionType;
 
     @Column(nullable = false)
-    private LocalDateTime occurredAt;
+    private LocalDateTime timestamp;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medicine_id", insertable = false, updatable = false)
+    private Medicine medicine;
 
     @PrePersist
     public void onPersist() {
-        occurredAt = LocalDateTime.now();
+        timestamp = LocalDateTime.now();
     }
 }
