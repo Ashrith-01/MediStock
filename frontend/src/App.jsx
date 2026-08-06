@@ -1,43 +1,29 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute from './components/ProtectedRoute'
+import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import AdminDashboard from './pages/AdminDashboard'
-import PharmacistDashboard from './pages/PharmacistDashboard'
-import StaffDashboard from './pages/StaffDashboard'
-import MedicinesList from './pages/MedicinesList'
-import SuppliersList from './pages/SuppliersList'
+import Dashboard from './pages/Dashboard'
+import Medicines from './pages/Medicines'
+import Suppliers from './pages/Suppliers'
 import StockHistory from './pages/StockHistory'
-import './index.css'
 
-const App = () => {
+export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={['PHARMACIST']} />}>
-            <Route path="/pharmacist" element={<PharmacistDashboard />} />
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={['STAFF']} />}>
-            <Route path="/staff" element={<StaffDashboard />} />
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'PHARMACIST', 'STAFF']} />}>
-            <Route path="/medicines" element={<MedicinesList />} />
-            <Route path="/suppliers" element={<SuppliersList />} />
-            <Route path="/stock-history" element={<StockHistory />} />
-          </Route>
-          <Route path="/" element={<Login />} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/medicines" element={<PrivateRoute><Medicines /></PrivateRoute>} />
+          <Route path="/medicines/:medicineId/history" element={<PrivateRoute><StockHistory /></PrivateRoute>} />
+          <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
-
-export default App

@@ -1,123 +1,86 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
-const roles = ['ADMIN', 'PHARMACIST', 'STAFF']
-
-const Register = () => {
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [role, setRole] = useState('STAFF')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [loading, setLoading] = useState(false)
+export default function Register() {
+  const { register } = useAuth()
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'STAFF' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
     setError('')
-    setSuccess('')
     setLoading(true)
-
     try {
-      const response = await api.post('/auth/register', {
-        firstName,
-        lastName,
-        email,
-        password,
-        phoneNumber,
-        role,
-      })
-      login(response.data)
-      setSuccess('Account created successfully. Redirecting to dashboard...')
-      setTimeout(() => navigate('/login'), 1000)
+      await register(form.fullName, form.email, form.password, form.role)
+      navigate('/dashboard')
     } catch (err) {
-      const message = err?.response?.data?.message || 'Registration failed. Please check your inputs.'
-      setError(message)
+      setError(err.response?.data?.message || 'Registration failed.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="page register-page">
-      <h1>Register</h1>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <label>
-          First Name
-          <input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-            maxLength={50}
-          />
-        </label>
-        <label>
-          Last Name
-          <input
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-            maxLength={50}
-          />
-        </label>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        <label>
-          Phone Number
-          <input
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            required
-            pattern="[0-9+\-() ]+"
-          />
-        </label>
-        <label>
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            {roles.map((roleOption) => (
-              <option value={roleOption} key={roleOption}>
-                {roleOption}
-              </option>
-            ))}
-          </select>
-        </label>
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
-        <button type="submit" disabled={loading}>
-          {loading ? 'Registering...' : 'Create Account'}
-        </button>
-      </form>
-      <p>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-md">
+        <h1 className="text-2xl font-bold text-center text-brand-600 mb-1">MediStock</h1>
+        <p className="text-center text-gray-500 mb-6">Create your account</p>
+
+        {error && <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text" name="fullName" required value={form.fullName} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="Jane Doe"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email" name="email" required value={form.email} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="you@example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password" name="password" required minLength={6} value={form.password} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select
+              name="role" value={form.role} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="STAFF">Staff</option>
+              <option value="PHARMACIST">Pharmacist</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <button
+            type="submit" disabled={loading}
+            className="w-full bg-brand-600 text-white py-2 rounded-md font-medium hover:bg-brand-700 disabled:opacity-50"
+          >
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Already have an account? <Link to="/login" className="text-brand-600 font-medium">Sign in</Link>
+        </p>
+      </div>
     </div>
   )
 }
-
-export default Register

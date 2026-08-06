@@ -1,53 +1,50 @@
-import React, { createContext, useContext, useMemo, useState } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
+import api from '../api/axiosInstance'
 
 const AuthContext = createContext(null)
 
-const getStoredAuth = () => {
-  if (typeof window === 'undefined') return { user: null, token: null }
-  const storedUser = window.localStorage.getItem('medistock-user')
-  const storedToken = window.localStorage.getItem('medistock-token')
-  return {
-    user: storedUser ? JSON.parse(storedUser) : null,
-    token: storedToken || null,
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('medistock_user')
+    return stored ? JSON.parse(stored) : null
+  })
+
+  const persistSession = (authResponse) => {
+    const { token, ...userInfo } = authResponse
+    localStorage.setItem('medistock_token', token)
+    localStorage.setItem('medistock_user', JSON.stringify(userInfo))
+    setUser(userInfo)
   }
-}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => getStoredAuth().user)
-  const [token, setToken] = useState(() => getStoredAuth().token)
+  const login = useCallback(async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password })
+    persistSession(data)
+    return data
+  }, [])
 
-  const value = useMemo(
-    () => ({
-      user,
-      token,
-      login: (data) => {
-        const formattedUser = {
-          email: data.email,
-          role: data.role,
-          firstName: data.firstName,
-        }
-        setUser(formattedUser)
-        setToken(data.token)
-        window.localStorage.setItem('medistock-user', JSON.stringify(formattedUser))
-        window.localStorage.setItem('medistock-token', data.token)
-      },
-      logout: () => {
-        setUser(null)
-        setToken(null)
-        window.localStorage.removeItem('medistock-user')
-        window.localStorage.removeItem('medistock-token')
-      },
-    }),
-    [user, token]
-  )
+  const register = useCallback(async (fullName, email, password, role) => {
+    const { data } = await api.post('/auth/register', { fullName, email, password, role })
+    persistSession(data)
+    return data
+  }, [])
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('medistock_token')
+    localStorage.removeItem('medistock_user')
+    setUser(null)
+  }, [])
+
+  const hasRole = useCallback((...roles) => {
+    return !!user && roles.includes(user.role)
+  }, [user])
+
+  const value = { user, login, register, logout, hasRole, isAuthenticated: !!user }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
+  return ctx
 }
