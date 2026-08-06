@@ -20,13 +20,21 @@ public class StockLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Many StockLogs belong to one Medicine
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medicine_id", nullable = false)
+    @JoinColumn(name = "medicine_id", nullable = true)
     @JsonIgnore
     private Medicine medicine;
+
+    @Column(name = "medicine_name")
+    private String medicineName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    @JsonIgnore
+    private User user;
+
+    @Column(name = "performed_by")
+    private String performedBy;
 
     @Column(nullable = false)
     private Integer oldQuantity;

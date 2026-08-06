@@ -8,14 +8,18 @@ import com.medistock.entity.Medicine;
 import com.medistock.entity.StockAction;
 import com.medistock.entity.StockLog;
 import com.medistock.entity.Supplier;
+import com.medistock.entity.User;
 import com.medistock.exception.DuplicateResourceException;
 import com.medistock.exception.ResourceNotFoundException;
 import com.medistock.repository.CategoryRepository;
 import com.medistock.repository.MedicineRepository;
 import com.medistock.repository.StockLogRepository;
 import com.medistock.repository.SupplierRepository;
+import com.medistock.security.UserPrincipal;
 import com.medistock.specification.MedicineSpecification;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +41,21 @@ public class MedicineService {
         this.categoryRepository = categoryRepository;
         this.supplierRepository = supplierRepository;
         this.stockLogRepository = stockLogRepository;
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserPrincipal principal) {
+            return principal.getUser();
+        }
+        return null;
+    }
+
+    private String getPerformedByStr(User user) {
+        if (user != null) {
+            return user.getFullName() != null ? user.getFullName() + " (" + user.getEmail() + ")" : user.getEmail();
+        }
+        return "System Administrator";
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +101,7 @@ public class MedicineService {
         return search(null, null, null, null, today.plusDays(days), today, null);
     }
 
+    @Transactional
     public MedicineResponse create(MedicineRequest request) {
         if (medicineRepository.existsByBatchNumberIgnoreCase(request.getBatchNumber())) {
             throw new DuplicateResourceException("A medicine with batch number '" + request.getBatchNumber() + "' already exists");
@@ -89,49 +109,102 @@ public class MedicineService {
 
         Medicine medicine = new Medicine();
         applyRequest(medicine, request);
-        return MedicineResponse.fromEntity(medicineRepository.save(medicine));
+        Medicine saved = medicineRepository.save(medicine);
+
+        User currentUser = getCurrentUser();
+        StockLog log = StockLog.builder()
+                .medicine(saved)
+                .medicineName(saved.getName())
+                .oldQuantity(0)
+                .newQuantity(saved.getQuantity() != null ? saved.getQuantity() : 0)
+                .note("New medicine registered in catalog")
+                .actionType(StockAction.ADD)
+                .user(currentUser)
+                .performedBy(getPerformedByStr(currentUser))
+                .build();
+        stockLogRepository.save(log);
+
+        return MedicineResponse.fromEntity(saved);
     }
 
+    @Transactional
     public MedicineResponse update(Long id, MedicineRequest request) {
         Medicine medicine = findEntity(id);
+        int oldQuantity = medicine.getQuantity() != null ? medicine.getQuantity() : 0;
+
         applyRequest(medicine, request);
-        return MedicineResponse.fromEntity(medicineRepository.save(medicine));
+        Medicine saved = medicineRepository.save(medicine);
+
+        User currentUser = getCurrentUser();
+        int newQuantity = saved.getQuantity() != null ? saved.getQuantity() : 0;
+        StockAction action = newQuantity > oldQuantity ? StockAction.ADD : (newQuantity < oldQuantity ? StockAction.SALE : StockAction.UPDATE);
+
+        StockLog log = StockLog.builder()
+                .medicine(saved)
+                .medicineName(saved.getName())
+                .oldQuantity(oldQuantity)
+                .newQuantity(newQuantity)
+                .note("Medicine record updated")
+                .actionType(action)
+                .user(currentUser)
+                .performedBy(getPerformedByStr(currentUser))
+                .build();
+        stockLogRepository.save(log);
+
+        return MedicineResponse.fromEntity(saved);
     }
 
     @Transactional
     public MedicineResponse adjustStock(Long id, StockAdjustmentRequest request) {
         Medicine medicine = findEntity(id);
         int oldQuantity = medicine.getQuantity() == null ? 0 : medicine.getQuantity();
-        int updatedQuantity = oldQuantity + request.getDelta();
+        int delta = request.getDelta() != null ? request.getDelta() : 0;
+        int updatedQuantity = oldQuantity + delta;
+        
         medicine.setQuantity(Math.max(0, updatedQuantity));
         medicine.setLastStockNote(request.getNote() == null || request.getNote().isBlank()
                 ? "Stock adjusted" : request.getNote());
         Medicine saved = medicineRepository.save(medicine);
 
-        StockAction actionType = request.getDelta() == null || request.getDelta() == 0
+        StockAction actionType = delta == 0
                 ? StockAction.UPDATE
-                : request.getDelta() > 0 ? StockAction.ADD : StockAction.SALE;
+                : delta > 0 ? StockAction.ADD : StockAction.SALE;
 
+        User currentUser = getCurrentUser();
         StockLog log = StockLog.builder()
                 .medicine(saved)
+                .medicineName(saved.getName())
                 .oldQuantity(oldQuantity)
                 .newQuantity(saved.getQuantity())
                 .note(saved.getLastStockNote())
                 .actionType(actionType)
+                .user(currentUser)
+                .performedBy(getPerformedByStr(currentUser))
                 .build();
         stockLogRepository.save(log);
 
-        if (saved.getCategory() != null) {
-            saved.getCategory().getName();
-        }
-        if (saved.getSupplier() != null) {
-            saved.getSupplier().getName();
-        }
         return MedicineResponse.fromEntity(saved);
     }
 
+    @Transactional
     public void delete(Long id) {
         Medicine medicine = findEntity(id);
+        int oldQuantity = medicine.getQuantity() != null ? medicine.getQuantity() : 0;
+        String medName = medicine.getName();
+
+        User currentUser = getCurrentUser();
+        StockLog log = StockLog.builder()
+                .medicine(null)
+                .medicineName(medName)
+                .oldQuantity(oldQuantity)
+                .newQuantity(0)
+                .note("Medicine removed from catalog")
+                .actionType(StockAction.DELETE)
+                .user(currentUser)
+                .performedBy(getPerformedByStr(currentUser))
+                .build();
+        stockLogRepository.save(log);
+
         medicineRepository.delete(medicine);
     }
 

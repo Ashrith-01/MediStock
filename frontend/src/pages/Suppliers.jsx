@@ -21,7 +21,7 @@ export default function Suppliers() {
     setError('')
     try {
       const { data } = await api.get('/suppliers', { params: name ? { name } : {} })
-      setSuppliers(data)
+      setSuppliers(data || [])
     } catch (err) {
       setError('Failed to load suppliers.')
     } finally {
@@ -60,35 +60,40 @@ export default function Suppliers() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Suppliers</h1>
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-100 tracking-tight sm:text-3xl">Supplier Management</h1>
+            <p className="text-sm text-slate-400 mt-0.5">Manage pharmaceutical vendors, contacts, and fulfillment partners</p>
+          </div>
           {canManage && (
-            <button onClick={openCreate} className="bg-brand-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-brand-700">
+            <button onClick={openCreate} className="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-cyan transition-all">
               + Add Supplier
             </button>
           )}
         </div>
 
-        <form onSubmit={handleSearch} className="mb-6 flex gap-2">
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="mb-6 flex gap-3 max-w-md">
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search suppliers by name..."
-            className="flex-1 max-w-sm border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
           />
-          <button type="submit" className="bg-white border border-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+          <button type="submit" className="bg-slate-800 border border-slate-700 text-slate-200 hover:text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
             Search
           </button>
         </form>
 
-        {error && <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</div>}
+        {error && <div className="mb-4 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">{error}</div>}
 
+        {/* Supplier Form Drawer */}
         {showForm && (
-          <div className="mb-6 bg-white rounded-xl shadow-sm border p-6 max-w-lg">
-            <h2 className="font-semibold text-gray-800 mb-4">{editingSupplier ? 'Edit Supplier' : 'New Supplier'}</h2>
+          <div className="mb-6 bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl max-w-lg">
+            <h2 className="font-extrabold text-slate-100 text-base mb-4">{editingSupplier ? 'Edit Supplier' : 'New Supplier Registration'}</h2>
             <SupplierForm
               initialData={editingSupplier}
               onSubmit={handleSubmit}
@@ -98,36 +103,41 @@ export default function Suppliers() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        {/* Table */}
+        <div className="bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-slate-800/80 shadow-lg overflow-x-auto">
           {loading ? (
-            <p className="p-6 text-gray-500">Loading suppliers...</p>
+            <p className="p-8 text-center text-slate-500 text-sm animate-pulse">Loading suppliers directory...</p>
           ) : suppliers.length === 0 ? (
-            <p className="p-6 text-gray-500">No suppliers found.</p>
+            <p className="p-8 text-center text-slate-500 text-sm">No suppliers found.</p>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Contact</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Address</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500"># Medicines</th>
-                  {canManage && <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>}
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-950/60">
+                  <th className="py-3.5 px-4 rounded-l-lg">Supplier Name</th>
+                  <th className="py-3.5 px-4">Contact Number</th>
+                  <th className="py-3.5 px-4">Email</th>
+                  <th className="py-3.5 px-4">Address</th>
+                  <th className="py-3.5 px-4 text-center">Medicines Supplied</th>
+                  {canManage && <th className="py-3.5 px-4 text-right rounded-r-lg">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-800/60 text-sm">
                 {suppliers.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.contactNumber || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.email || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.address || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.suppliedMedicineCount}</td>
+                  <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-slate-100">{s.name}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs text-slate-300">{s.contactNumber || '—'}</td>
+                    <td className="py-3.5 px-4 text-slate-300 text-xs">{s.email || '—'}</td>
+                    <td className="py-3.5 px-4 text-slate-400 text-xs">{s.address || '—'}</td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        {s.suppliedMedicineCount} items
+                      </span>
+                    </td>
                     {canManage && (
-                      <td className="px-4 py-3 text-right space-x-3">
-                        <button onClick={() => openEdit(s)} className="text-brand-600 hover:text-brand-700 font-medium">Edit</button>
+                      <td className="py-3.5 px-4 text-right space-x-3 text-xs font-semibold">
+                        <button onClick={() => openEdit(s)} className="text-cyan-400 hover:text-cyan-300 transition-colors">Edit</button>
                         {canDelete && (
-                          <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                          <button onClick={() => handleDelete(s.id)} className="text-rose-400 hover:text-rose-300 transition-colors">Delete</button>
                         )}
                       </td>
                     )}

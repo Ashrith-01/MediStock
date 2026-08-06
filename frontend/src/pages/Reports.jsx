@@ -53,46 +53,43 @@ export default function Reports() {
       id: "inventory",
       title: "Inventory Master Report",
       badge: "Full Catalog",
-      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      accentBg: "from-emerald-500 to-teal-600",
+      badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
       description:
         "Comprehensive PDF summary of all medicines, categories, available quantities, unit pricing, and supplier allocations.",
       filename: "inventory-report.pdf",
       apiCall: downloadInventoryReport,
       icon: (
-        <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
     },
     {
       id: "expiry",
-      title: "Expiry & Expiration Risk Report",
+      title: "Expiry Risk Report",
       badge: "Risk & Compliance",
-      badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-      accentBg: "from-amber-500 to-orange-600",
+      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/30",
       description:
         "Filtered compliance document highlighting expired items and medicines expiring within 30 days for priority rotation.",
       filename: "expiry-report.pdf",
       apiCall: downloadExpiryReport,
       icon: (
-        <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg className="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
     {
       id: "stock",
-      title: "Stock Movement Audit Log",
+      title: "Stock Audit Trail Log",
       badge: "Audit Trail",
-      badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      accentBg: "from-indigo-500 to-violet-600",
+      badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
       description:
         "Detailed transaction audit trail documenting all stock additions, adjustments, sales, and quantity delta history.",
       filename: "stock-report.pdf",
       apiCall: downloadStockReport,
       icon: (
-        <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
         </svg>
       ),
@@ -100,20 +97,20 @@ export default function Reports() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold uppercase tracking-wider mb-3">
-            <span className="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
             Admin Exclusive Portal
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">
-            Inventory & Stock Reports
+          <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight sm:text-4xl">
+            Inventory & Stock PDF Reports
           </h1>
-          <p className="mt-2 text-base text-gray-600 max-w-3xl">
+          <p className="mt-2 text-base text-slate-400 max-w-3xl">
             Generate and export official PDF reports for inventory auditing, compliance tracking, and stock movement logs.
           </p>
         </div>
@@ -121,35 +118,20 @@ export default function Reports() {
         {/* Feedback Alert Toast */}
         {statusMessage && (
           <div
-            className={`mb-8 p-4 rounded-xl border flex items-center justify-between shadow-sm transition-all ${
+            className={`mb-8 p-4 rounded-2xl border flex items-center justify-between text-xs font-semibold shadow-lg transition-all ${
               statusMessage.type === "success"
-                ? "bg-green-50 border-green-200 text-green-800"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
                 : statusMessage.type === "error"
-                ? "bg-red-50 border-red-200 text-red-800"
-                : "bg-blue-50 border-blue-200 text-blue-800"
+                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
             }`}
           >
             <div className="flex items-center gap-3">
-              {statusMessage.type === "success" && (
-                <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              {statusMessage.type === "error" && (
-                <svg className="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              )}
-              {statusMessage.type === "info" && (
-                <svg className="w-5 h-5 text-blue-600 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              )}
               <span className="text-sm font-medium">{statusMessage.text}</span>
             </div>
             <button
               onClick={() => setStatusMessage(null)}
-              className="text-xs font-semibold opacity-60 hover:opacity-100 transition-opacity"
+              className="text-xs font-bold opacity-70 hover:opacity-100 transition-opacity"
             >
               Dismiss
             </button>
@@ -163,42 +145,37 @@ export default function Reports() {
             return (
               <div
                 key={report.id}
-                className="bg-white rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group"
+                className="bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-slate-800/80 shadow-lg hover:border-slate-700 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
               >
                 <div className="p-6">
                   {/* Top Bar with Icon & Badge */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 group-hover:scale-105 transition-transform duration-200">
+                    <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700 group-hover:scale-105 transition-transform duration-200">
                       {report.icon}
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${report.badgeColor}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${report.badgeColor}`}>
                       {report.badge}
                     </span>
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-brand-600 transition-colors">
+                  <h3 className="text-lg font-extrabold text-slate-100 group-hover:text-cyan-400 transition-colors">
                     {report.title}
                   </h3>
-                  <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
                     {report.description}
                   </p>
                 </div>
 
                 {/* Footer Action Area */}
-                <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100">
+                <div className="px-6 py-4 bg-slate-950/60 border-t border-slate-800">
                   <button
                     disabled={isLoading}
                     onClick={() => handleDownload(report.id, report.apiCall, report.filename)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 active:bg-brand-800 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 active:opacity-90 disabled:opacity-60 shadow-glow-cyan transition-all"
                   >
                     {isLoading ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span>Generating PDF...</span>
-                      </>
+                      <span>Generating PDF...</span>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

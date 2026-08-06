@@ -10,16 +10,12 @@ import java.util.List;
 
 public interface StockLogRepository extends JpaRepository<StockLog, Long> {
 
-    @Query("select s from StockLog s join fetch s.medicine where s.medicine.id = :medicineId order by s.timestamp desc")
+    @Query("select s from StockLog s left join fetch s.medicine left join fetch s.user where s.medicine.id = :medicineId order by s.timestamp desc")
     List<StockLog> findByMedicineId(@Param("medicineId") Long medicineId);
 
-    @Query("select s from StockLog s join fetch s.medicine order by s.timestamp desc")
+    @Query("select s from StockLog s left join fetch s.medicine left join fetch s.user order by s.timestamp desc")
     List<StockLog> findAllByOrderByTimestampDesc(Pageable pageable);
 
-    @Query("""
-            SELECT s 
-            FROM StockLog s
-            JOIN FETCH s.medicine
-            """)
-    List<StockLog> findAllWithMedicine();
+    @Query("select s from StockLog s left join fetch s.medicine left join fetch s.user order by s.timestamp desc")
+    List<StockLog> findAllLogs();
 }

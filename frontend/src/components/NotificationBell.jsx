@@ -20,15 +20,12 @@ export default function NotificationBell() {
 
       const filtered = rawData.filter((n) => {
         if (!role || role === "ADMIN") {
-          // Admin sees: Stock alerts, Expiry alerts, Purchase alerts
           return ["LOW_STOCK", "EXPIRY_ALERT", "PURCHASE_ALERT", "STOCK_UPDATE", "SYSTEM_ALERT"].includes(n.type);
         }
         if (role === "PHARMACIST") {
-          // Pharmacist sees: Medicine expiry, Low stock
           return ["LOW_STOCK", "EXPIRY_ALERT"].includes(n.type);
         }
         if (role === "STAFF") {
-          // Staff sees: Assigned inventory updates
           return ["STOCK_UPDATE", "INVENTORY_UPDATE"].includes(n.type) || (n.user && n.user.id === user?.id);
         }
         return true;
@@ -84,15 +81,14 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-brand-600 focus:outline-none rounded-full hover:bg-brand-50 transition-colors"
+        className="relative p-2 text-slate-300 hover:text-cyan-400 focus:outline-none rounded-xl hover:bg-slate-800/60 transition-colors"
         title="Notifications"
       >
         <svg
-          className="w-6 h-6"
+          className="w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
         >
           <path
             strokeLinecap="round"
@@ -102,58 +98,58 @@ export default function NotificationBell() {
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/3 -translate-y-1/3 bg-red-600 rounded-full shadow-sm">
+          <span className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white transform translate-x-1/3 -translate-y-1/3 bg-rose-500 rounded-full shadow-glow-indigo">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-800 z-50 overflow-hidden">
+          <div className="px-4 py-3 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-800 text-sm">
+              <h3 className="font-bold text-slate-100 text-sm">
                 Notifications
               </h3>
               {unreadCount > 0 && (
-                <span className="bg-brand-100 text-brand-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold px-2 py-0.5 rounded-full">
                   {unreadCount} new
                 </span>
               )}
             </div>
             <button
               onClick={loadNotifications}
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
             >
               Refresh
             </button>
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/60">
             {notifications.length === 0 ? (
-              <div className="py-8 text-center text-gray-500 text-sm">
-                No notifications right now
+              <div className="py-8 text-center text-slate-500 text-sm">
+                No active notifications right now
               </div>
             ) : (
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`p-3.5 hover:bg-gray-50 transition-colors flex items-start justify-between gap-3 ${
-                    !n.read ? "bg-brand-50/30" : ""
+                  className={`p-3.5 hover:bg-slate-800/40 transition-colors flex items-start justify-between gap-3 ${
+                    !n.read ? "bg-cyan-500/5" : ""
                   }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-bold text-slate-100">
                         {n.title}
                       </span>
                       {!n.read && (
-                        <span className="w-2 h-2 rounded-full bg-brand-600 inline-block"></span>
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block shadow-glow-cyan"></span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">{n.message}</p>
+                    <p className="text-xs text-slate-400 mt-1">{n.message}</p>
                     {n.createdAt && (
-                      <span className="text-[10px] text-gray-400 mt-1 block">
+                      <span className="text-[10px] text-slate-500 mt-1 block font-mono">
                         {new Date(n.createdAt).toLocaleString()}
                       </span>
                     )}
@@ -162,7 +158,7 @@ export default function NotificationBell() {
                     {!n.read && (
                       <button
                         onClick={(e) => handleMarkAsRead(n.id, e)}
-                        className="text-xs text-brand-600 hover:bg-brand-50 px-2 py-1 rounded transition-colors"
+                        className="text-xs text-cyan-400 hover:bg-cyan-500/10 px-2 py-1 rounded-lg transition-colors font-semibold"
                         title="Mark as read"
                       >
                         Read
@@ -170,7 +166,7 @@ export default function NotificationBell() {
                     )}
                     <button
                       onClick={(e) => handleDelete(n.id, e)}
-                      className="text-xs text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                      className="text-xs text-slate-500 hover:text-rose-400 p-1 rounded-lg transition-colors"
                       title="Delete notification"
                     >
                       ✕

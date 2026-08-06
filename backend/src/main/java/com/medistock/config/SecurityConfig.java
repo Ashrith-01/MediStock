@@ -85,8 +85,8 @@ public class SecurityConfig {
                     .requestMatchers("/h2-console/**")
                     .permitAll()
 
-                    // Report APIs (Admin only)
-                    .requestMatchers("/api/reports/**").hasRole("ADMIN")
+                    // Report, User Management & Audit Logs APIs (Admin only)
+                    .requestMatchers("/api/reports/**", "/api/users/**", "/api/stock-logs").hasRole("ADMIN")
                     
                     .requestMatchers(
                             HttpMethod.GET,

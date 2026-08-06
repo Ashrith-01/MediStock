@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900;
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #090d16;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800/80 shadow-lg;
+  }
+
+  .glass-card-hover {
+    @apply glass-card hover:border-slate-700/80 hover:bg-slate-900/90 transition-all duration-300;
+  }
+
+  .glass-input {
+    @apply bg-slate-900/90 border border-slate-800 text-slate-100 placeholder-slate-500 rounded-xl focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 bg-clip-text text-transparent;
+  }
+}
+
+/* Fix dark select dropdown options styling across browsers */
+select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
 }
