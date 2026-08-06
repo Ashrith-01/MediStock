@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Medicines from './pages/Medicines'
 import Suppliers from './pages/Suppliers'
 import StockHistory from './pages/StockHistory'
+import Reports from "./pages/Reports";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/medicines" element={<PrivateRoute><Medicines /></PrivateRoute>} />
           <Route path="/medicines/:medicineId/history" element={<PrivateRoute><StockHistory /></PrivateRoute>} />
           <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
+          <Route path="/reports" element={<PrivateRoute roles={['ADMIN']}><Reports /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

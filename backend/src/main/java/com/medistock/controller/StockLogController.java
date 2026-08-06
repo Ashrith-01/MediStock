@@ -1,8 +1,8 @@
 package com.medistock.controller;
 
-import com.medistock.backend.repository.StockLogRepository;
 import com.medistock.dto.StockLogResponse;
 import com.medistock.entity.StockLog;
+import com.medistock.repository.StockLogRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;

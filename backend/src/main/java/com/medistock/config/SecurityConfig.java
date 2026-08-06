@@ -78,11 +78,26 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/medicines/**", "/api/suppliers/**", "/api/categories/**")
-                            .authenticated()
-                        .anyRequest().authenticated()
+
+                    .requestMatchers("/api/auth/**")
+                    .permitAll()
+
+                    .requestMatchers("/h2-console/**")
+                    .permitAll()
+
+                    // Report APIs (Admin only)
+                    .requestMatchers("/api/reports/**").hasRole("ADMIN")
+                    
+                    .requestMatchers(
+                            HttpMethod.GET,
+                            "/api/medicines/**",
+                            "/api/suppliers/**",
+                            "/api/categories/**"
+                           )
+                    .authenticated()
+
+                    .anyRequest()
+                    .authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

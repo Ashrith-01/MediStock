@@ -18,6 +18,10 @@ export default function Navbar() {
     hasRole ? hasRole('ADMIN', 'PHARMACIST', 'STAFF') : ['ADMIN', 'PHARMACIST', 'STAFF'].includes(user.role?.toUpperCase())
   )
 
+  const isAdmin = user && (
+    hasRole ? hasRole('ADMIN') : user.role?.toUpperCase() === 'ADMIN'
+  )
+
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
@@ -27,6 +31,11 @@ export default function Navbar() {
             <Link to="/dashboard" className={linkClass}>Dashboard</Link>
             <Link to="/medicines" className={linkClass}>Medicines</Link>
             <Link to="/suppliers" className={linkClass}>Suppliers</Link>
+            {isAdmin && (
+              <Link to="/reports" className={linkClass}>
+                Reports
+              </Link>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">
