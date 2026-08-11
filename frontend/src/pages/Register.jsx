@@ -55,7 +55,7 @@ export default function Register() {
             <input
               type="text" name="fullName" required value={form.fullName} onChange={handleChange}
               className={inputStyle}
-              placeholder="Dr. Alex Rivera"
+              placeholder="Name"
             />
           </div>
           <div>
@@ -63,7 +63,7 @@ export default function Register() {
             <input
               type="email" name="email" required value={form.email} onChange={handleChange}
               className={inputStyle}
-              placeholder="alex@medistock.com"
+              placeholder="example@gmail.com"
             />
           </div>
           <div>

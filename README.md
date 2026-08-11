@@ -1,150 +1,256 @@
-# MediStock — Medical Inventory Management Platform
+# 🏥 MediStock - Enterprise Medical Inventory Management System
 
-Full-stack implementation covering **Milestone 1** (auth, DB schema, backend/frontend setup)
-and **Milestone 2** (medicine inventory + supplier management + search & filtering).
-
-- **Backend:** Java 17, Spring Boot 3.3, Spring Security + JWT, Spring Data JPA
-- **Frontend:** React 18 (Vite), React Router, Axios, Tailwind CSS, Context API
-- **Database:** MySQL (local dev) / PostgreSQL (production) — H2 also wired for a zero-install quick start
+**MediStock** is a robust, full-stack medical inventory and pharmacy management platform designed to streamline medicine tracking, monitor stock levels, manage suppliers, automate expiry & low-stock notifications, generate PDF reports, and maintain complete audit logs across healthcare facilities.
 
 ---
 
-## 1. Backend setup
+## ✨ Features
+
+- 🔒 **Role-Based Security & Authentication:** JWT token authentication with granular permissions for `ADMIN`, `PHARMACIST`, and `STAFF`.
+- 💊 **Comprehensive Medicine Directory:** Real-time tracking of medicine quantities, batch numbers, categories, unit prices, minimum thresholds, and expiry dates.
+- ⚠️ **Stock & Expiry Alert System:** Automated background scheduler checks for low-stock thresholds and approaching medicine expiration dates.
+- 📧 **Automated Email Notifications:** Instant email alerts for critical stock warnings via Spring Mail / SMTP integration.
+- 📑 **PDF Report Generation:** Professional downloadable PDF reports for inventory status, stock movements, and expiry reports powered by LibrePDF/OpenPDF.
+- 📦 **Supplier & Category Management:** Categorize pharmaceuticals into therapeutic classes and manage supplier contact profiles and contracts.
+- 📜 **Complete Audit Trails & History:** Track every stock transaction (`IN`, `OUT`, `ADJUSTMENT`, `RETURN`, `EXPIRED`) with exact timestamps and responsible users.
+- 📊 **Interactive Analytics Dashboard:** Real-time data visualization using Recharts for stock breakdown, low-stock warnings, and historical usage trends.
+
+---
+
+## 🛠 Tech Stack
+
+### **Backend**
+- **Framework:** Spring Boot 3.3.2 (Java 21)
+- **Security:** Spring Security with JSON Web Tokens (JWT)
+- **Database / ORM:** PostgreSQL / Spring Data JPA & Hibernate
+- **PDF Engine:** LibrePDF / OpenPDF (v1.3.39)
+- **Mail Service:** Spring Boot Starter Mail (SMTP)
+- **Build Tool:** Maven
+
+### **Frontend**
+- **Framework:** React 18 (Vite 7)
+- **Routing:** React Router DOM v6
+- **Styling:** TailwindCSS v3 + PostCSS
+- **Data Visualization:** Recharts
+- **HTTP Client:** Axios
+
+---
+
+## 🏗 System Architecture
+
+```
+                 +-----------------------------------+
+                 |           React Frontend          |
+                 |     (Vite + Tailwind + Axios)     |
+                 +-----------------+-----------------+
+                                   |
+                             REST API / JWT
+                                   |
+                 +-----------------v-----------------+
+                 |        Spring Boot Backend        |
+                 |                                   |
+                 |  +-----------------------------+  |
+                 |  |      Security & Auth        |  |
+                 |  +-----------------------------+  |
+                 |  |   Controllers & Services    |  |
+                 |  +-----------------------------+  |
+                 |  |    Scheduled Alert Tasks    |  |
+                 |  +-----------------------------+  |
+                 +--------+---------------+----------+
+                          |               |
+               Spring Data JPA        Spring Mail
+                          |               |
+                 +--------v-------+  +----+----------+
+                 | PostgreSQL DB  |  | SMTP Server   |
+                 +----------------+  +---------------+
+```
+
+---
+
+## 🔑 Role-Based Access Control (RBAC)
+
+| Feature / Action             | ADMIN | PHARMACIST | STAFF |
+| :--------------------------- | :---: | :--------: | :---: |
+| View Medicines & Stock       |   ✅  |     ✅     |   ✅  |
+| Update Stock Quantities      |   ✅  |     ✅     |   ❌  |
+| Add / Edit / Delete Medicine |   ✅  |     ✅     |   ❌  |
+| Manage Categories            |   ✅  |     ✅     |   ❌  |
+| Manage Suppliers             |   ✅  |     ❌     |   ❌  |
+| View Audit Logs              |   ✅  |     ❌     |   ❌  |
+| Generate PDF Reports         |   ✅  |     ❌     |   ❌  |
+| User Account Management      |   ✅  |     ❌     |   ❌  |
+
+---
+
+## 📂 Directory Structure
+
+```
+MediStock/
+├── backend/                        # Spring Boot Application
+│   ├── src/main/java/com/medistock/
+│   │   ├── config/                 # Security & Application Configurations
+│   │   ├── controller/             # REST Endpoints (Auth, Medicines, Suppliers, Reports, etc.)
+│   │   ├── dto/                    # Request & Response Payload Models
+│   │   ├── entity/                 # JPA Database Entities (User, Medicine, Supplier, StockLog, etc.)
+│   │   ├── exception/              # Custom Global Exception Handling
+│   │   ├── report/                 # PDF Generation Service Implementation
+│   │   ├── repository/             # Spring Data Repositories
+│   │   ├── scheduler/              # Automated Alert Schedulers (Cron Jobs)
+│   │   ├── security/               # JWT Utilities & Authentication Filters
+│   │   └── service/                # Core Business Logic Layer
+│   └── src/main/resources/
+│       ├── application.properties  # Base Configuration
+│       ├── application-dev.properties # Local PostgreSQL Setup
+│       └── application-prod.properties# Production Settings
+│
+└── frontend/                       # React Application
+    ├── src/
+    │   ├── api/                    # Axios Client Instance & Interceptors
+    │   ├── components/             # Reusable UI Elements (Navbar, Modals, Tables)
+    │   ├── context/                # Authentication & Theme State Context
+    │   ├── pages/                  # Views (Dashboard, Medicines, Suppliers, Audit Logs, Reports)
+    │   ├── services/               # API Service Calls
+    │   ├── App.jsx                 # Routing Setup
+    │   └── main.jsx                # Entrypoint
+    ├── tailwind.config.js          # Tailwind Configuration
+    └── vite.config.js              # Vite Build & Server Config
+```
+
+---
+
+## ⚡ Prerequisites
+
+Make sure you have the following installed on your machine:
+- **JDK 21** or higher
+- **Node.js** (v18.x or higher) & **npm**
+- **PostgreSQL** (v14.x or higher)
+- **Maven 3.8+** (or use bundled Maven wrapper)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Database Configuration
+
+Create a PostgreSQL database named `medistock`:
+
+```sql
+CREATE DATABASE medistock;
+```
+
+Update your database credentials in `backend/src/main/resources/application-dev.properties` if needed:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/medistock
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD
+```
+
+---
+
+### 2. Backend Setup (Spring Boot)
+
+Navigate to the `backend` directory:
 
 ```bash
 cd backend
 ```
 
-### Option A — fastest way to try it (no DB install required)
-
-Runs on an in-memory H2 database.
+Build the project:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=test
+mvn clean install
 ```
 
-### Option B — local development with MySQL
-
-1. Make sure MySQL is running locally.
-2. Set credentials via env vars (or edit `application-dev.properties` directly):
+Run the application:
 
 ```bash
-export DB_USERNAME=root
-export DB_PASSWORD=your_password
-  mvn spring-boot:run
+mvn spring-boot:run
 ```
 
-The `dev` profile is active by default and will auto-create the `medistock` database and tables
-(`spring.jpa.hibernate.ddl-auto=update`).
-
-### Option C — production with PostgreSQL
-
-```bash
-export SPRING_PROFILES_ACTIVE=prod
-export DATABASE_URL=jdbc:postgresql://<host>:5432/medistock
-export DB_USERNAME=postgres
-export DB_PASSWORD=your_password
-export JWT_SECRET=<a-long-random-secret>
-mvn clean package
-java -jar target/medistock-backend.jar
-```
-
-Backend runs on **http://localhost:8080** by default.
-
-### Environment variables
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `dev`, `prod`, or `test` | `dev` |
-| `DB_USERNAME` / `DB_PASSWORD` | DB credentials | `root`/`root` (dev) |
-| `JWT_SECRET` | Signing key for JWTs | dev fallback (change in prod!) |
-| `JWT_EXPIRATION_MS` | Token lifetime in ms | `86400000` (24h) |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173,http://localhost:3000` |
+The Spring Boot backend will start on **http://localhost:8081**.
 
 ---
 
-## 2. Frontend setup
+### 3. Frontend Setup (React + Vite)
+
+Open a new terminal and navigate to the `frontend` directory:
 
 ```bash
 cd frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
-cp .env.example .env   # points VITE_API_BASE_URL at the backend
+```
+
+Start the Vite development server:
+
+```bash
 npm run dev
 ```
 
-Frontend runs on **http://localhost:5173**.
+The React frontend will be available at **http://localhost:5173**.
 
 ---
 
-## 3. Using the app
+## ⚙️ Environment Variables
 
-1. Go to `/register`, create an account (pick a role: Admin / Pharmacist / Staff).
-2. You're logged in immediately (JWT stored in `localStorage`) and land on the Dashboard.
-3. **Suppliers** page: add suppliers first (Admin/Pharmacist only can create/edit; Admin only can delete).
-4. **Medicines** page: add medicines, optionally linking a category/supplier, set quantity,
-   low-stock threshold, and expiry date. Search/filter by name, batch number, category,
-   supplier, or stock status (In Stock / Low Stock / Out of Stock).
-5. Dashboard cards summarize totals, low-stock count, out-of-stock count, suppliers count,
-   and medicines expiring within 30 days — click a card to jump to a filtered view.
+### Backend (`application.properties` / Environment)
 
-Role-based access (enforced both in the UI and on the backend via `@PreAuthorize`):
-
-| Action | Staff | Pharmacist | Admin |
-|---|:---:|:---:|:---:|
-| View medicines/suppliers | ✅ | ✅ | ✅ |
-| Create/update medicines & suppliers | ❌ | ✅ | ✅ |
-| Delete suppliers/categories | ❌ | ❌ | ✅ |
-| Delete medicines | ❌ | ✅ | ✅ |
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `SPRING_PROFILES_ACTIVE` | `dev` | Active Spring profile (`dev`, `prod`, `test`) |
+| `SERVER_PORT` | `8081` | Port on which the Spring Boot application runs |
+| `JWT_SECRET` | `medistock-super-secret-key...` | Secret key used to sign JWT tokens |
+| `JWT_EXPIRATION_MS` | `86400000` (24 Hours) | JWT token expiration duration in milliseconds |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed origins for CORS configuration |
 
 ---
 
-## 4. API reference
+## 📡 API Endpoints Summary
 
-Base URL: `http://localhost:8080/api`
+### Authentication (`/api/auth`)
+- `POST /api/auth/register` - Register a new user account.
+- `POST /api/auth/login` - Authenticate user & receive JWT token.
 
-### Auth
-- `POST /auth/register` — `{ fullName, email, password, role }` → `{ token, userId, fullName, email, role }`
-- `POST /auth/login` — `{ email, password }` → same shape
+### Medicines (`/api/medicines`)
+- `GET /api/medicines` - Fetch paginated/filtered list of medicines.
+- `GET /api/medicines/{id}` - Fetch single medicine details.
+- `POST /api/medicines` - Create a new medicine record.
+- `PUT /api/medicines/{id}` - Update medicine details.
+- `DELETE /api/medicines/{id}` - Remove medicine from inventory.
+- `POST /api/medicines/{id}/stock` - Record stock movement (`IN`, `OUT`, `ADJUSTMENT`).
 
-All other endpoints require header `Authorization: Bearer <token>`.
+### Categories & Suppliers (`/api/categories`, `/api/suppliers`)
+- `GET /api/categories` - List medicine categories.
+- `POST /api/categories` - Create new category.
+- `GET /api/suppliers` - List medicine suppliers.
+- `POST /api/suppliers` - Add new supplier.
 
-### Categories
-- `GET /categories`
-- `POST /categories` — `{ name, description }` (Admin/Pharmacist)
-- `PUT /categories/{id}`
-- `DELETE /categories/{id}` (Admin only)
-
-### Suppliers
-- `GET /suppliers?name=<search>`
-- `GET /suppliers/{id}`
-- `POST /suppliers` — `{ name, contactNumber, email, address }` (Admin/Pharmacist)
-- `PUT /suppliers/{id}`
-- `DELETE /suppliers/{id}` (Admin only)
-
-### Medicines
-- `GET /medicines?name=&batchNumber=&categoryId=&supplierId=&expiryBefore=&expiryAfter=&stockStatus=`
-- `GET /medicines/{id}`
-- `GET /medicines/low-stock`
-- `GET /medicines/out-of-stock`
-- `GET /medicines/expiring?days=30`
-- `POST /medicines` — `{ name, batchNumber, categoryId, supplierId, quantity, lowStockThreshold, manufacturingDate, expiryDate, price }` (Admin/Pharmacist)
-- `PUT /medicines/{id}`
-- `DELETE /medicines/{id}` (Admin/Pharmacist)
+### Notifications & Reports (`/api/notifications`, `/api/reports`)
+- `GET /api/notifications` - Fetch active low-stock & expiry alerts.
+- `GET /api/reports/pdf` - Download PDF inventory summary report.
 
 ---
 
-## 5. What's implemented vs. what's next
+## ⏰ Reporting & Automation
 
-**Done (Milestone 1 & 2):**
-- JWT auth, registration/login, role-based access (Admin/Pharmacist/Staff)
-- Medicine CRUD with category & supplier relations, batch tracking, stock status derivation
-- Supplier CRUD with search
-- Category CRUD
-- Search & filtering (name, batch, category, supplier, expiry range, stock status)
-- React frontend: auth pages, protected routes, dashboard, medicine & supplier management UIs
+MediStock features built-in background schedulers that execute automated checks:
+- **Low-Stock Check:** Runs periodic scans to compare current stock levels against pre-set threshold values.
+- **Expiry Monitor:** Flags items reaching expiration within configurable windows (e.g., 30/60 days).
+- **Email Dispatcher:** Sends consolidated status reports to system administrators.
 
-**Not yet implemented (Milestones 3 & 4 per the plan):**
-- Expiry/low-stock notification delivery (email/SMS/push) — `nearExpiry`/`expired`/`stockStatus`
-  flags are already returned by the API so a notification job can be built on top
-- Analytics dashboard charts, PDF/Excel report export
-- OAuth2 login, password reset, Docker/CI deployment config
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Follow these steps to contribute:
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
