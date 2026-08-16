@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import MedicineForm from '../components/MedicineForm'
+import QRScanner from '../components/QRScanner'
 import api from '../api/axiosInstance'
 import { useAuth } from '../context/AuthContext'
+import { QRCodeCanvas } from 'qrcode.react'
 
 const STATUS_BADGE = {
   IN_STOCK: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30',
@@ -23,6 +25,12 @@ export default function Medicines() {
   const [showForm, setShowForm] = useState(false)
   const [editingMedicine, setEditingMedicine] = useState(null)
   const [stockAdjustment, setStockAdjustment] = useState(null)
+  const [showScanner, setShowScanner] = useState(false)
+  const [scannedMedicine, setScannedMedicine] = useState(null)
+  const [qrMedicine, setQrMedicine] = useState(null)
+  const [scanLoading, setScanLoading] = useState(false)
+  const scanLoadingRef = useRef(false)
+
   const [stockSaving, setStockSaving] = useState(false)
 
   const [filters, setFilters] = useState({
@@ -123,6 +131,189 @@ export default function Medicines() {
     }
   }
 
+  const downloadQR = () => {
+    if (!qrMedicine) return
+    const canvas = document.getElementById('medicine-qr-canvas')
+    if (!canvas) return
+    const pngUrl = canvas.toDataURL('image/png')
+    const downloadLink = document.createElement('a')
+    downloadLink.href = pngUrl
+    downloadLink.download = `QR_${qrMedicine.name}_${qrMedicine.batchNumber}.png`
+    document.body.appendChild(downloadLink)
+    downloadLink.click()
+    document.body.removeChild(downloadLink)
+  }
+
+  const handlePrintQR = () => {
+    if (!qrMedicine) return
+    const canvas = document.getElementById('medicine-qr-canvas')
+    const qrDataUrl = canvas ? canvas.toDataURL('image/png') : ''
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print QR Label - ${qrMedicine.name}</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+              margin: 0;
+              background-color: #fff;
+            }
+            .label-card {
+              border: 2px solid #0f172a;
+              padding: 24px;
+              border-radius: 16px;
+              text-align: center;
+              width: 280px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+            .title { font-size: 20px; font-weight: 800; margin-top: 12px; color: #0f172a; }
+            .subtitle { font-size: 13px; color: #475569; margin-bottom: 12px; font-family: monospace; font-weight: bold; }
+            .details { font-size: 12px; text-align: left; border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 10px; color: #334155; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="label-card">
+            ${qrDataUrl ? `<img src="${qrDataUrl}" width="190" height="190" alt="QR Code" />` : ''}
+            <div class="title">${qrMedicine.name}</div>
+            <div class="subtitle">Batch #: ${qrMedicine.batchNumber}</div>
+            <div class="details">
+              <div class="row"><span>Category:</span> <span class="bold">${qrMedicine.categoryName || '—'}</span></div>
+              <div class="row"><span>Expiry Date:</span> <span class="bold">${qrMedicine.expiryDate}</span></div>
+              <div class="row"><span>Price:</span> <span class="bold">${qrMedicine.price != null ? '₹' + qrMedicine.price : '—'}</span></div>
+              <div class="row"><span>Quantity:</span> <span class="bold">${qrMedicine.quantity}</span></div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
+  const handleQRScan = useCallback(async (decodedText) => {
+    if (scanLoadingRef.current) return
+    scanLoadingRef.current = true
+    setScanLoading(true)
+    setError('')
+
+    try {
+      const rawText = (decodedText || '').trim()
+      if (!rawText) {
+        throw new Error('Scanned QR code is empty.')
+      }
+
+      let medicineData = null
+      let parsedId = null
+      let parsedBatch = null
+      let parsedName = null
+
+      // 1. Check if structured JSON string (e.g. {"id": 1} or {"batchNumber": "B-101"})
+      if (rawText.startsWith('{') && rawText.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(rawText)
+          if (parsed.id) parsedId = Number(parsed.id)
+          if (parsed.batchNumber) parsedBatch = String(parsed.batchNumber).trim()
+          if (parsed.name) parsedName = String(parsed.name).trim()
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // 2. Check if URL containing ID (e.g. http://localhost:5173/medicines/1)
+      if (!parsedId && !parsedBatch && (rawText.startsWith('http://') || rawText.startsWith('https://'))) {
+        const parts = rawText.split('?')[0].split('/')
+        const lastPart = parts[parts.length - 1]
+        if (Number.isInteger(Number(lastPart))) {
+          parsedId = Number(lastPart)
+        }
+      }
+
+      // Priority 1: Exact Database Primary Key ID Lookup (if numeric input or parsed ID)
+      const targetId = parsedId || (Number.isInteger(Number(rawText)) && Number(rawText) > 0 ? Number(rawText) : null)
+      if (targetId) {
+        try {
+          const { data } = await api.get(`/medicines/${targetId}`)
+          if (data && data.id) {
+            medicineData = data
+          }
+        } catch (err) {
+          console.warn(`Database ID ${targetId} lookup failed:`, err)
+        }
+      }
+
+      // Priority 2: Batch Number Lookup (STRICT exact match required)
+      if (!medicineData) {
+        const targetBatch = parsedBatch || rawText
+        try {
+          const { data } = await api.get('/medicines', { params: { batchNumber: targetBatch } })
+          if (Array.isArray(data) && data.length > 0) {
+            // Require EXACT batch number match (case-insensitive) to prevent SQL LIKE '%X%' false matches
+            const exactMatch = data.find(m => m.batchNumber && m.batchNumber.trim().toLowerCase() === targetBatch.toLowerCase())
+            if (exactMatch) {
+              medicineData = exactMatch
+            }
+          }
+        } catch (err) {
+          console.warn(`Batch '${targetBatch}' lookup failed:`, err)
+        }
+      }
+
+      // Priority 3: Medicine Name Lookup (STRICT exact match required)
+      if (!medicineData) {
+        const targetName = parsedName || rawText
+        try {
+          const { data } = await api.get('/medicines', { params: { name: targetName } })
+          if (Array.isArray(data) && data.length > 0) {
+            // Require EXACT name match (case-insensitive)
+            const exactMatch = data.find(m => m.name && m.name.trim().toLowerCase() === targetName.toLowerCase())
+            if (exactMatch) {
+              medicineData = exactMatch
+            }
+          }
+        } catch (err) {
+          console.warn(`Name '${targetName}' lookup failed:`, err)
+        }
+      }
+
+      if (!medicineData) {
+        throw new Error(`No medicine found for scanned code: "${rawText}"`)
+      }
+
+      setScannedMedicine(medicineData)
+      setShowScanner(false)
+
+      // Filter catalog list by batch number to isolate the scanned medicine
+      const updatedFilters = {
+        name: '',
+        batchNumber: medicineData.batchNumber || '',
+        categoryId: '',
+        supplierId: '',
+        stockStatus: ''
+      }
+      setFilters(updatedFilters)
+      loadMedicines(updatedFilters)
+    } catch (err) {
+      console.error('Medicine scan error:', err)
+      setError(
+        err.message ||
+        err.response?.data?.message ||
+        'Medicine not found for this QR code.'
+      )
+    } finally {
+      scanLoadingRef.current = false
+      setScanLoading(false)
+    }
+  }, [loadMedicines])
+
   const inputStyle = "w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
 
   return (
@@ -134,12 +325,123 @@ export default function Medicines() {
             <h1 className="text-2xl font-extrabold text-slate-100 tracking-tight sm:text-3xl">Medicine Inventory</h1>
             <p className="text-sm text-slate-400 mt-0.5">Manage pharmaceutical catalog items and stock levels</p>
           </div>
-          {canManage && (
-            <button onClick={openCreate} className="bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow-cyan transition-all">
-              + Add Medicine
-            </button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {showScanner ? (
+              <button
+                onClick={() => setShowScanner(false)}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-rose-500 flex items-center gap-1.5"
+              >
+                ✕ Close Scanner
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowScanner(true)}
+                className="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-cyan-500 flex items-center gap-1.5"
+              >
+                📷 Scan Medicine
+              </button>
+            )}
+
+            {canManage && (
+              <button
+                onClick={openCreate}
+                className="rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-glow-cyan transition-all hover:from-cyan-400 hover:to-indigo-500"
+              >
+                + Add Medicine
+              </button>
+            )}
+          </div>
         </div>
+
+        {error && (
+          <div className="mb-6 flex items-center justify-between text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 shadow-lg">
+            <span>⚠️ {error}</span>
+            <button onClick={() => setError('')} className="ml-2 font-bold hover:text-white">✕</button>
+          </div>
+        )}
+
+        {/* Scanned Medicine Display Card */}
+        {scannedMedicine && (
+          <div className="mb-6 rounded-2xl border border-cyan-500/40 bg-slate-900/90 p-5 shadow-2xl backdrop-blur-xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🔍</span>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-100">Scanned Medicine Details</h3>
+                  <p className="text-xs text-slate-400">QR Code match found in catalog</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setScannedMedicine(null)}
+                className="rounded-lg bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 hover:bg-slate-700 hover:text-slate-200 transition"
+              >
+                ✕ Dismiss
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Name</span>
+                <span className="font-bold text-cyan-400 text-base">{scannedMedicine.name}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Batch Number</span>
+                <span className="font-mono text-slate-200">{scannedMedicine.batchNumber}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Category</span>
+                <span className="text-slate-200">{scannedMedicine.categoryName || '—'}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Supplier</span>
+                <span className="text-slate-200">{scannedMedicine.supplierName || '—'}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Quantity</span>
+                <span className="font-bold text-slate-100">{scannedMedicine.quantity}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Expiry Date</span>
+                <span className="text-slate-200">{scannedMedicine.expiryDate}</span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Status</span>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_BADGE[scannedMedicine.stockStatus]}`}>
+                  {scannedMedicine.stockStatus?.replace('_', ' ')}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Price</span>
+                <span className="font-semibold text-emerald-400">{scannedMedicine.price != null ? `₹${scannedMedicine.price}` : '—'}</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800/80 flex justify-end gap-2">
+              <button
+                onClick={() => setQrMedicine(scannedMedicine)}
+                className="rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition flex items-center gap-1.5"
+              >
+                🖨️ Print QR
+              </button>
+              {canManage && (
+                <>
+                  <button
+                    onClick={() => openStockAdjustment(scannedMedicine)}
+                    className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition"
+                  >
+                    Adjust Stock
+                  </button>
+                  <button
+                    onClick={() => openEdit(scannedMedicine)}
+                    className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition"
+                  >
+                    Edit Medicine
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filter Bar */}
         <form onSubmit={applyFilters} className="mb-6 bg-slate-900/70 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end shadow-lg">
@@ -183,8 +485,6 @@ export default function Medicines() {
             </button>
           </div>
         </form>
-
-        {error && <div className="mb-4 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">{error}</div>}
 
         {/* Stock Adjustment Drawer */}
         {stockAdjustment && (
@@ -247,7 +547,7 @@ export default function Medicines() {
                   <th className="py-3.5 px-4">Expiry</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Price</th>
-                  {canManage && <th className="py-3.5 px-4 text-right rounded-r-lg">Actions</th>}
+                  <th className="py-3.5 px-4 text-right rounded-r-lg">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-sm">
@@ -269,20 +569,107 @@ export default function Medicines() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-semibold text-emerald-400 text-xs">{m.price != null ? `₹${m.price}` : '—'}</td>
-                    {canManage && (
-                      <td className="py-3.5 px-4 text-right space-x-3 text-xs font-semibold">
-                        <button onClick={() => openStockAdjustment(m)} className="text-emerald-400 hover:text-emerald-300 transition-colors">Adjust</button>
-                        <Link to={`/medicines/${m.id}/history`} className="text-cyan-400 hover:text-cyan-300 transition-colors">History</Link>
-                        <button onClick={() => openEdit(m)} className="text-indigo-400 hover:text-indigo-300 transition-colors">Edit</button>
-                        <button onClick={() => handleDelete(m.id)} className="text-rose-400 hover:text-rose-300 transition-colors">Delete</button>
-                      </td>
-                    )}
+                    <td className="py-3.5 px-4 text-right space-x-3 text-xs font-semibold">
+                      <button onClick={() => setQrMedicine(m)} className="text-amber-400 hover:text-amber-300 transition-colors">Print QR</button>
+                      {canManage && (
+                        <>
+                          <button onClick={() => openStockAdjustment(m)} className="text-emerald-400 hover:text-emerald-300 transition-colors">Adjust</button>
+                          <Link to={`/medicines/${m.id}/history`} className="text-cyan-400 hover:text-cyan-300 transition-colors">History</Link>
+                          <button onClick={() => openEdit(m)} className="text-indigo-400 hover:text-indigo-300 transition-colors">Edit</button>
+                          <button onClick={() => handleDelete(m.id)} className="text-rose-400 hover:text-rose-300 transition-colors">Delete</button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* QR Scanner Modal */}
+        {showScanner && (
+          <QRScanner
+            onScan={handleQRScan}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+
+        {/* Print QR Label Modal */}
+        {qrMedicine && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-5 text-center">
+              
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>🖨️</span> Print Medicine QR Label
+                </h3>
+                <button
+                  onClick={() => setQrMedicine(null)}
+                  className="rounded-xl bg-slate-800 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-700 font-bold"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
+              {/* Printable Label Badge */}
+              <div className="bg-white text-slate-900 rounded-2xl p-6 shadow-inner space-y-3 flex flex-col items-center border border-slate-200">
+                <div className="p-2 border-2 border-slate-900 rounded-xl bg-white">
+                  <QRCodeCanvas
+                    id="medicine-qr-canvas"
+                    value={String(qrMedicine.id)}
+                    size={190}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xl font-extrabold text-slate-900 tracking-tight">{qrMedicine.name}</h4>
+                  <p className="text-xs font-mono font-bold text-slate-600 uppercase">Batch #: {qrMedicine.batchNumber}</p>
+                </div>
+
+                <div className="w-full pt-2 border-t border-slate-200 grid grid-cols-2 text-left text-xs gap-2 text-slate-700">
+                  <div>
+                    <span className="font-semibold text-slate-500 block">Category:</span>
+                    <span className="font-bold text-slate-900">{qrMedicine.categoryName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 block">Expiry Date:</span>
+                    <span className="font-bold text-slate-900">{qrMedicine.expiryDate}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 block">Price:</span>
+                    <span className="font-bold text-emerald-700">{qrMedicine.price != null ? `₹${qrMedicine.price}` : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 block">Stock Qty:</span>
+                    <span className="font-bold text-slate-900">{qrMedicine.quantity}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={downloadQR}
+                  className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-700 transition"
+                >
+                  📥 Download Image
+                </button>
+                <button
+                  onClick={handlePrintQR}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:from-amber-400 hover:to-orange-500 transition"
+                >
+                  🖨️ Print Label
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+
       </main>
     </div>
   )

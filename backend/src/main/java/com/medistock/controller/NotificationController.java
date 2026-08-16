@@ -6,6 +6,7 @@ import com.medistock.security.UserPrincipal;
 import com.medistock.service.EmailService;
 import com.medistock.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,9 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final EmailService emailService;
+
+    @Value("${app.notification.recipient-email:${spring.mail.username:admin@medistock.com}}")
+    private String defaultRecipientEmail;
 
     @PostMapping
     public ResponseEntity<Notification> createNotification(
@@ -59,12 +63,13 @@ public class NotificationController {
     }
 
     @PostMapping("/send")
-    public String sendNotification() {
+    public String sendNotification(@RequestParam(required = false) String email) {
+        String recipient = (email != null && !email.isBlank()) ? email : defaultRecipientEmail;
         emailService.sendEmail(
-                "ashrithreddyannam@gmail.com",
+                recipient,
                 "Test Mail",
                 "Email working"
         );
-        return "Email sent";
+        return "Email sent to " + recipient;
     }
 }
